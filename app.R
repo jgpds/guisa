@@ -228,58 +228,14 @@ ui <- navbarPage(
            )
   ),
   navbarMenu("Contato",
-             tabPanel(HTML('<a href="https://mail.google.com/mail/?view=cm&fs=1&to=joaosantos34537445@gmail.com&su=Assunto&body=Corpo%20do%20email" target="_blank" style="font-size: 14px;">
-              <img src="email.svg" width="14px" style="margin-right: 10px;"> E-mail
-            </a>'),
-                      tags$div(
-                        class = "contact-item",
-                        tags$a(
-                          href = "mailto:seu.email@exemplo.com",
-                          target = "_blank",
-                          tags$img(src = "email.svg", width = "14px", style = "margin-right: 10px;"),
-                          "E-mail"
-                        )
-                      )
-             ),
-             tabPanel(HTML('<a href="https://api.whatsapp.com/send?phone=5581999911222" target="_blank" style="font-size: 14px;">
-              <img src="whatsapp.svg" width="14px" style="margin-right: 10px;"> WhatsApp
-            </a>'),
-                      tags$div(
-                        class = "contact-item",
-                        tags$a(
-                          href = "https://api.whatsapp.com/send?phone=5581999911222",
-                          target = "_blank",
-                          tags$img(src = "whatsapp.svg", width = "14px", style = "margin-right: 10px;"),
-                          "WhatsApp"
-                        )
-                      )
-             ),
-             tabPanel(HTML('<a href="https://github.com/jgpds" target="_blank" style="font-size: 14px;">
-              <img src="github.svg" width="14px" style="margin-right: 10px;"> GitHub
-            </a>'),
-                      tags$div(
-                        class = "contact-item",
-                        tags$a(
-                          href = "https://github.com/jgpds",
-                          target = "_blank",
-                          tags$img(src = "github.svg", width = "15px", style = "margin-right: 10px;"),
-                          "GitHub"
-                        )
-                      )
-             ),
-             tabPanel(HTML('<a href="https://www.linkedin.com/in/joaoguilhermepsantos/" target="_blank" style="font-size: 14px;">
-              <img src="linkedin.svg" width="17px" style="margin-right: 10px;"> LinkedIn
-            </a>'),
-                      tags$div(
-                        class = "contact-item",
-                        tags$a(
-                          href = "https://www.linkedin.com/in/joaoguilhermepsantos/",
-                          target = "_blank",
-                          tags$img(src = "linkedin.svg", width = "17px", style = "margin-right: 10px;"),
-                          "LinkedIn"
-                        )
-                      )
-             )
+             HTML('<li><a href="https://mail.google.com/mail/?view=cm&fs=1&to=joaosantos34537445@gmail.com&su=Assunto&body=Corpo%20do%20email" target="_blank" style="font-size: 14px;">
+                  <img src="email.svg" width="14px" style="margin-right: 10px;"> E-mail</a></li>'),
+             HTML('<li><a href="https://api.whatsapp.com/send?phone=5581999911222" target="_blank" style="font-size: 14px;">
+                  <img src="whatsapp.svg" width="14px" style="margin-right: 10px;"> WhatsApp</a></li>'),
+             HTML('<li><a href="https://github.com/jgpds" target="_blank" style="font-size: 14px;">
+                  <img src="github.svg" width="14px" style="margin-right: 10px;"> GitHub</a></li>'),
+             HTML('<li><a href="https://www.linkedin.com/in/joaoguilhermepsantos/" target="_blank" style="font-size: 14px;">
+                  <img src="linkedin.svg" width="17px" style="margin-right: 10px;"> LinkedIn</a></li>')
   ),
   position = "fixed-top"
 )
