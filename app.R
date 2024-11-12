@@ -9,7 +9,9 @@ pacman::p_load(
   lubridate,
   openxlsx,
   readxl,
-  dplyr
+  dplyr,
+  plotly,
+  ggplot
 )
 
 # Constantes e configurações
@@ -120,7 +122,10 @@ ui <- navbarPage(
                  "validar",
                  tags$span(icon("check-circle"), "Realizar Validação"),
                  class = "btn-validar"
-               )
+               ),
+               
+               # Adicionando o botão de download aqui
+               uiOutput("download_button")
              ),
              
              mainPanel(
@@ -128,14 +133,61 @@ ui <- navbarPage(
                  tabPanel(
                    tags$span(icon("chart-pie"), "Resumo"),
                    br(),
-                   div(class = "resumo-box",
-                       h4("Parâmetros da Validação"),
-                       verbatimTextOutput("parametros"),
-                       hr(),
-                       h4("Resultados da Validação"),
-                       verbatimTextOutput("resumo_validacao"),
-                       uiOutput("download_button"),
-                       DTOutput("resumo_tbl")
+                   fluidRow(
+                     column(3,
+                            div(class = "info-box",
+                                style = "padding: 15px; background: white; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px;",
+                                h4(icon("users"), "Total Participantes", style = "font-size: 14px; margin: 0;"),
+                                div(style = "font-size: 24px; font-weight: bold; color: #2c3e50;",
+                                    textOutput("total_participantes")
+                                )
+                            )
+                     ),
+                     column(3,
+                            div(class = "info-box",
+                                style = "padding: 15px; background: white; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px;",
+                                h4(icon("venus-mars"), "Distribuição por Sexo", style = "font-size: 14px; margin: 0;"),
+                                div(style = "font-size: 24px; font-weight: bold; color: #2c3e50;",
+                                    textOutput("dist_sexo")
+                                )
+                            )
+                     ),
+                     column(3,
+                            div(class = "info-box",
+                                style = "padding: 15px; background: white; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px;",
+                                h4(icon("calendar"), "Idade Média", style = "font-size: 14px; margin: 0;"),
+                                div(style = "font-size: 24px; font-weight: bold; color: #2c3e50;",
+                                    textOutput("idade_media")
+                                )
+                            )
+                     ),
+                     column(3,
+                            div(class = "info-box",
+                                style = "padding: 15px; background: white; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px;",
+                                h4(icon("dollar-sign"), "Benefício Médio", style = "font-size: 14px; margin: 0;"),
+                                div(style = "font-size: 24px; font-weight: bold; color: #2c3e50;",
+                                    textOutput("beneficio_medio")
+                                )
+                            )
+                     )
+                   ),
+                   
+                   # Gráficos (mantidos apenas os dois primeiros)
+                   fluidRow(
+                     column(6,
+                            div(class = "chart-box",
+                                style = "padding: 15px; background: white; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px;",
+                                h4("Pirâmide Etária", style = "font-size: 16px; margin-bottom: 15px;"),
+                                plotlyOutput("piramide_etaria", height = "300px")
+                            )
+                     ),
+                     column(6,
+                            div(class = "chart-box",
+                                style = "padding: 15px; background: white; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px;",
+                                h4("Distribuição Benefício", style = "font-size: 16px; margin-bottom: 15px;"),
+                                plotlyOutput("dist_beneficio", height = "300px")
+                            )
+                     )
                    )
                  ),
                  tabPanel(
@@ -196,7 +248,7 @@ ui <- navbarPage(
                  ),
                  
                  h2("4. Exportação"),
-                 p("Use o botão 'Baixar Resultados' para exportar a análise completa em formato Excel.")
+                 p("Use o botão 'Baixar Relatório Detalhado' para exportar a análise completa em formato Excel.")
                )
              )
            )
@@ -272,14 +324,83 @@ server <- function(input, output, session) {
     })
   })
   
+  # Modificação no server para o botão de download
   output$download_button <- renderUI({
-    req(rv$validation_status)  # Só mostra o botão após a validação
-    downloadButton(
-      "downloadData",
-      label = "Baixar Resultados",
-      class = "btn-download"
-    )
+    if (rv$validation_status) {
+      downloadButton(
+        "downloadData",
+        label = "Baixar Relatório ",
+        class = "btn-download btn-block", # Adicionado btn-block para largura total
+        style = "margin-top: 15px; width: 100%;" # Aumentado margin-top e definido width 100%
+      )
+    }
   })
+  
+  output$dist_beneficio <- renderPlotly({
+    req(rv$base2_data)
+    
+    tryCatch({
+      # Extrai e limpa os dados de benefícios
+      dados <- rv$base2_data
+      beneficios <- as.numeric(gsub("[^0-9.]", "", dados[[6]]))
+      
+      # Remove NAs e valores negativos ou zero
+      beneficios <- beneficios[!is.na(beneficios) & beneficios > 0]
+      
+      # Cria o boxplot básico com ggplot2
+      p <- ggplot(data.frame(Beneficio = beneficios), aes(y = Beneficio)) +
+        geom_boxplot(outlier.colour = "red", fill = "lightblue") +
+        labs(title = "", y = "Valor do Benefício (R$)") +
+        theme_minimal()
+      
+      # Converte para um gráfico interativo com ggplotly
+      ggplotly(p)
+      
+    }, error = function(e) {
+      plot_ly() %>%
+        add_annotations(
+          text = "Erro ao gerar o gráfico. Verifique os dados.",
+          showarrow = FALSE
+        )
+    })
+  })
+  
+  # Calcular o total de participantes
+  output$total_participantes <- renderText({
+    total <- nrow(rv$base2_data)
+    return(total)
+  })
+  
+  output$beneficio_medio <- renderText({
+    req(rv$base2_data)  # Garante que os dados existem
+    
+    # Pega o nome da coluna de benefício (ajuste conforme sua base)
+    coluna_beneficio <- names(rv$base2_data)[6]
+    
+    # Converte para numérico, removendo caracteres não numéricos
+    beneficios <- as.numeric(gsub("[^0-9.]", "", rv$base2_data[[6]]))
+    
+    # Calcula a média, removendo NAs
+    ben_medio <- mean(beneficios, na.rm = TRUE)
+    
+    # Formata o resultado
+    return(format(round(ben_medio, 2), big.mark = ".", decimal.mark = ","))
+  })
+  
+  output$dist_sexo <- renderText({
+    req(rv$base2_data)  # Garante que os dados existem
+    
+    num_homens <- sum(ifelse(rv$base2_data[[3]] == "M", 1, 0))
+    num_mulheres <- sum(ifelse(rv$base2_data[[3]] == "F", 1, 0))
+    
+    # Formata o resultado
+    return(paste0("Masculino: ", num_homens, "\nFeminimo: ", num_mulheres))
+  })
+  
+  
+  
+  
+  
   
   # Observe validation button click
   observeEvent(input$validar, {
@@ -330,6 +451,29 @@ server <- function(input, output, session) {
     content = function(file) {
       req(rv$current_params)
       
+      
+      
+      # Críticas
+      criticas <- data.frame(
+        Critica = c(
+          "Matrículas Repetidas", 
+          "Idade maior que 90 anos", 
+          "Benefício menor que o salário mínimo", 
+          "Data de Início de Benefício menor que a Data de Nascimento", 
+          "Data de Nascimento divergente", 
+          "Sexo divergente", 
+          "Tipo de Benefício divergente", 
+          "Benefício Complementar com variações significativas"
+        ),
+        Frequencia = NA,      # Initialize with NA as in the original table
+        Percentual_Sobre_a_Base = NA  # Initialize with NA as in the original table
+      )
+      colnames(criticas) <- c("Críticas", "Frequência", "Percentual Sobre a Base")
+      
+      # 1. Matrículas Repetidas
+      criticas[1, 2] <- sum(ifelse(duplicated(rv$base2_data$Matrícula) | duplicated(rv$base2_data$Matrícula, fromLast = TRUE), 1, 0))
+      
+      # Criando pasta excel
       wb <- createWorkbook()
       
       style_corpo_bordas <- createStyle(halign = "center", fontSize = 10, border = "TopBottomLeftRight", borderColour = "#A6A6A6", fontColour = "#262626")
@@ -369,11 +513,12 @@ server <- function(input, output, session) {
       # Aba Base 1
       if (!is.null(rv$base1_data)) {
         addWorksheet(wb, "Base 1")
-        writeData(wb, "Base 1", rv$base1_data)
-        setColWidths(wb, "Base 1", cols = 1:ncol(rv$base1_data), widths = "auto")
+        writeData(wb, "Base 1", rv$base1_data, startCol = 2, startRow = 2)
+        setColWidths(wb, "Base 1", cols = 1, widths = 2.5)
+        setColWidths(wb, "Base 1", cols = 2:ncol(rv$base1_data), widths = "auto")
         
-        addStyle(wb, sheet = 2, style_cabecalho2, rows = 1, cols = 1:ncol(rv$base1_data))
-        addStyle(wb, sheet = 2, style_corpo_bordas, rows = 2:(1+nrow(rv$base1_data)), cols = 1:ncol(rv$base1_data), gridExpand = TRUE)
+        addStyle(wb, sheet = 2, style_cabecalho2, rows = 2, cols = 2:(1+ncol(rv$base1_data)))
+        addStyle(wb, sheet = 2, style_corpo_bordas, rows = 3:(2+nrow(rv$base1_data)), cols = 2:(1+ncol(rv$base1_data)), gridExpand = TRUE)
         
         
       }
@@ -381,12 +526,30 @@ server <- function(input, output, session) {
       # Aba Base 2
       if (!is.null(rv$base2_data)) {
         addWorksheet(wb, "Base 2")
-        writeData(wb, "Base 2", rv$base2_data)
-        setColWidths(wb, "Base 2", cols = 1:ncol(rv$base2_data), widths = "auto")
+        writeData(wb, "Base 2", rv$base2_data, startCol = 2, startRow = 2)
+        setColWidths(wb, "Base 2", cols = 1, widths = 2.5)
+        setColWidths(wb, "Base 2", cols = 2:ncol(rv$base2_data), widths = "auto")
         
-        addStyle(wb, sheet = 3, style_cabecalho2, rows = 1, cols = 1:ncol(rv$base2_data))
-        addStyle(wb, sheet = 3, style_corpo_bordas, rows = 2:(1+nrow(rv$base2_data)), cols = 1:ncol(rv$base2_data), gridExpand = TRUE)
+        addStyle(wb, sheet = "Base 2", style_cabecalho2, rows = 2, cols = 2:(1+ncol(rv$base2_data)))
+        addStyle(wb, sheet = "Base 2", style_corpo_bordas, rows = 3:(2+nrow(rv$base2_data)), cols = 2:(1+ncol(rv$base2_data)), gridExpand = TRUE)
       }
+      
+      # Aba de Parâmetros
+      addWorksheet(wb, "Movimentação")
+      
+      # Aba Divergências
+      addWorksheet(wb, "Divergências")
+      writeData(wb, "Divergências", "Resumo - Crítica da Base de Dados", startCol = 2, startRow = 2)
+      writeData(wb, "Divergências", criticas, startCol = 2, startRow = 3)
+      
+      mergeCells(wb, sheet = "Divergências", cols = 2:(1+ncol(criticas)), rows = 2)
+      
+      addStyle(wb, sheet = "Divergências", style_cabecalho4, rows = 2, cols = 2:(1+ncol(criticas)), gridExpand = TRUE)
+      addStyle(wb, sheet = "Divergências", style_cabecalho2, rows = 3, cols = 2:(1+ncol(criticas)), gridExpand = TRUE)
+      addStyle(wb, sheet = "Divergências", style_corpo_bordas_left, rows = 4:(3+nrow(criticas)), cols = 2, gridExpand = TRUE)
+      addStyle(wb, sheet = "Divergências", style_corpo_bordas, rows = 4:(3+nrow(criticas)), cols = 3:(1+ncol(criticas)), gridExpand = TRUE)
+      # Aba Anexo
+      addWorksheet(wb, "Anexo")
       
       # Salvar o workbook
       saveWorkbook(wb, file, overwrite = TRUE)
