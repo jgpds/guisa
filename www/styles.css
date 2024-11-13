@@ -11,6 +11,13 @@
   align-items: center;
 }
 
+.contact-item a:hover {
+  color: #0073e6; /* Cor do texto ao passar o mouse */
+  text-decoration: underline; /* Sublinhado ao passar o mouse */
+  font-weight: bold; /* Aumenta a espessura da fonte */
+  transition: all 0.3s ease; /* Suaviza a transição */
+}
+
 .data-preview-box {
   padding: 20px;
   background-color: #ffffff;

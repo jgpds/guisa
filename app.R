@@ -11,7 +11,7 @@ pacman::p_load(
   readxl,
   dplyr,
   plotly,
-  ggplot
+  ggplot2
 )
 
 # Constantes e configurações
@@ -54,6 +54,17 @@ ui <- navbarPage(
       .navbar {
         padding-top: 0px;         /* Reduz o padding superior */
         padding-bottom: 0px;      /* Reduz o padding inferior */
+      }
+      body {
+        overflow-y: auto; /* Remove a barra de rolagem vertical */
+      }
+      .navbar-page {
+        max-width: 800px; /* Define a largura máxima */
+        max-height: 600px; /* Define a altura máxima */
+        overflow-y: auto; /* Permite rolagem interna nos painéis se necessário */
+      }
+      .tab-content {
+        max-height: 500px; /* Altura máxima do conteúdo de cada aba */
       }
     "))
     
@@ -178,14 +189,14 @@ ui <- navbarPage(
                             div(class = "chart-box",
                                 style = "padding: 15px; background: white; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px;",
                                 h4("Pirâmide Etária", style = "font-size: 16px; margin-bottom: 15px;"),
-                                plotlyOutput("piramide_etaria", height = "300px")
+                                plotlyOutput("piramide_etaria", height = "500px")
                             )
                      ),
                      column(6,
                             div(class = "chart-box",
                                 style = "padding: 15px; background: white; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px;",
                                 h4("Distribuição Benefício", style = "font-size: 16px; margin-bottom: 15px;"),
-                                plotlyOutput("dist_beneficio", height = "300px")
+                                plotlyOutput("dist_beneficio", height = "500px")
                             )
                      )
                    )
@@ -336,6 +347,60 @@ server <- function(input, output, session) {
     }
   })
   
+  # output$piramide_etaria <- renderPlotly({
+  #   req(rv$base2_data)
+  #   dados <- rv$base2_data
+  #   datas_nascimento <- as.Date(dados$`Data de Nascimento`, origin = "1899-12-30")
+  #   data_atual <- as.Date(input$data_fim, origin = "1899-12-30") # mesma base de data
+  #   idades <- as.numeric(difftime(data_atual, datas_nascimento, units = "weeks")) %/% 52
+  #   
+  #   pyramid_data <- data.frame(
+  #     Edad = abs(idades),
+  #     Sexo = ifelse(rv$base2_data$Sexo == "Masculino", "Hombres", "Mujeres"),
+  #     Cantidad = 1
+  #   )
+  #   
+  #   ggplot(pyramid_data, aes(x = Edad, fill = Sexo)) +
+  #     geom_bar(aes(y = Cantidad), stat = "identity", position = "stack") +
+  #     scale_x_reverse() +
+  #     labs(x = "Edad", y = "Población", title = "Pirámide Poblacional") +
+  #     theme_classic() +
+  #     theme(
+  #       axis.text.y = element_text(size = 10),
+  #       axis.text.x = element_text(size = 8),
+  #       plot.title = element_text(size = 12, face = "bold")
+  #     )
+  # })
+  
+  output$piramide_etaria <- renderPlotly({
+    req(rv$base2_data)
+    dados <- rv$base2_data
+    datas_nascimento <- as.Date(dados$`Data de Nascimento`, origin = "1899-12-30")
+    data_atual <- as.Date(input$data_fim, origin = "1899-12-30") # mesma base de data
+    idades <- as.numeric(difftime(data_atual, datas_nascimento, units = "weeks")) %/% 52
+    sexo <- dados$Sexo
+    
+    # Criar um dataframe com as idades e sexo
+    dados <- data.frame(idade = idades, sexo = sexo)
+    
+    # Criar faixas etárias (0-4, 5-9, ..., 95-99) e contar por faixa etária e sexo
+    dados <- dados %>%
+      mutate(faixa_etaria = cut(idade, breaks = seq(0, 100, by = 3), right = FALSE)) %>%
+      group_by(faixa_etaria, sexo) %>%
+      summarise(count = n(), .groups = "drop") %>%
+      mutate(count = ifelse(sexo == "M", -count, count))
+    
+    # Criar o gráfico de pirâmide etária
+    plot_ly(dados, x = ~count, y = ~faixa_etaria, color = ~sexo, colors = c("#66C3FF", "pink"),
+            type = 'bar', orientation = 'h') %>%
+      layout(barmode = 'relative',
+             xaxis = list(title = 'População', tickvals = seq(-max(abs(dados$count)), max(abs(dados$count)), by = 5),
+                          ticktext = abs(seq(-max(abs(dados$count)), max(abs(dados$count)), by = 5))),
+             yaxis = list(title = 'Faixa Etária'),
+             title = "Pirâmide Etária")
+  })
+  
+  
   output$dist_beneficio <- renderPlotly({
     req(rv$base2_data)
     
@@ -349,7 +414,7 @@ server <- function(input, output, session) {
       
       # Cria o boxplot básico com ggplot2
       p <- ggplot(data.frame(Beneficio = beneficios), aes(y = Beneficio)) +
-        geom_boxplot(outlier.colour = "red", fill = "lightblue") +
+        geom_boxplot(outlier.colour = "black", fill = "#e6e7e8") +
         labs(title = "", y = "Valor do Benefício (R$)") +
         theme_minimal()
       
@@ -365,10 +430,81 @@ server <- function(input, output, session) {
     })
   })
   
+  
+  
+  # output$piramide_etaria <- renderText({
+  #   req(rv$base2_data)
+  #   dados <- rv$base2_data
+  #   return(dados$`Data de Nascimento`[1])
+  #   # tryCatch({
+  #   #   # Extrai e limpa os dados de data de nascimento e Sexo
+  #   #   dados <- rv$base2_data
+  #   #   
+  #   #   # Convertendo a data de nascimento para o formato Date
+  #   #   dados$`Data de Nascimento` <- as.Date(dados$`Data de Nascimento`)
+  #   #   
+  #   #   # Data de referência para o cálculo das idades
+  #   #   data_referencia <- as.Date(input$data_fim, origin = "1899-12-30")
+  #   #   
+  #   #   # Calcular idades e criar faixas etárias
+  #   #   dados <- dados %>%
+  #   #     mutate(
+  #   #       idade = as.integer(difftime(data_referencia, dados$`Data de Nascimento`, units = "weeks") / 52.25),
+  #   #       faixa_etaria = cut(
+  #   #         idade,
+  #   #         breaks = seq(0, 100, by = 5),
+  #   #         right = FALSE,
+  #   #         labels = paste(seq(0, 95, by = 5), seq(4, 99, by = 5), sep = "-")
+  #   #       )
+  #   #     )
+  #   #   
+  #   #   # Contar o número de indivíduos em cada faixa etária e Sexo
+  #   #   dados_piramide <- dados %>%
+  #   #     group_by(faixa_etaria, Sexo) %>%
+  #   #     summarise(contagem = n()) %>%
+  #   #     ungroup() %>%
+  #   #     mutate(contagem = ifelse(Sexo == "M", -contagem, contagem))
+  #   #   
+  #   #   # Criar a pirâmide etária com ggplot2
+  #   #   p <- ggplot(dados_piramide, aes(x = faixa_etaria, y = contagem, fill = Sexo)) +
+  #   #     geom_bar(stat = "identity") +
+  #   #     coord_flip() +
+  #   #     scale_y_continuous(labels = abs) +
+  #   #     labs(
+  #   #       title = "Pirâmide Etária",
+  #   #       x = "Faixa Etária",
+  #   #       y = "População",
+  #   #       fill = "Sexo"
+  #   #     ) +
+  #   #     theme_minimal() +
+  #   #     scale_fill_manual(values = c("M" = "blue", "F" = "pink"))
+  #   #   
+  #   #   # Converte para um gráfico interativo com ggplotly
+  #   #   ggplotly(p)
+  #   #   
+  #   # }, error = function(e) {
+  #   #   plot_ly() %>%
+  #   #     add_annotations(
+  #   #       text = "Erro ao gerar o gráfico. Verifique os dados.",
+  #   #       showarrow = FALSE
+  #   #     )
+  #   # })
+  # })
+  
   # Calcular o total de participantes
   output$total_participantes <- renderText({
     total <- nrow(rv$base2_data)
     return(total)
+  })
+  
+  output$idade_media <- renderText({
+    # Datas fornecidas
+    datas_nascimento <- as.Date(rv$base2_data[[2]], origin = "1899-12-30") # para o sistema de data do Excel (base 1900)
+    data_atual <- as.Date(input$data_fim, origin = "1899-12-30") # mesma base de data
+    
+    # Calcular idade
+    idade_media_aux <- mean(as.numeric(difftime(data_atual, datas_nascimento, units = "weeks")) %/% 52)
+    return(idade_media_aux)
   })
   
   output$beneficio_medio <- renderText({
