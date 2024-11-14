@@ -66,8 +66,8 @@ ui <- navbarPage(
       .tab-content {
         max-height: 500px; /* Altura máxima do conteúdo de cada aba */
       }
-    "))
-    
+    ")),
+    tags$link(rel = "shortcut icon", href = "favicon.ico")
   ),
   title = tags$div(
     tags$a(
