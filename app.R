@@ -430,67 +430,6 @@ server <- function(input, output, session) {
     })
   })
   
-  
-  
-  # output$piramide_etaria <- renderText({
-  #   req(rv$base2_data)
-  #   dados <- rv$base2_data
-  #   return(dados$`Data de Nascimento`[1])
-  #   # tryCatch({
-  #   #   # Extrai e limpa os dados de data de nascimento e Sexo
-  #   #   dados <- rv$base2_data
-  #   #   
-  #   #   # Convertendo a data de nascimento para o formato Date
-  #   #   dados$`Data de Nascimento` <- as.Date(dados$`Data de Nascimento`)
-  #   #   
-  #   #   # Data de referência para o cálculo das idades
-  #   #   data_referencia <- as.Date(input$data_fim, origin = "1899-12-30")
-  #   #   
-  #   #   # Calcular idades e criar faixas etárias
-  #   #   dados <- dados %>%
-  #   #     mutate(
-  #   #       idade = as.integer(difftime(data_referencia, dados$`Data de Nascimento`, units = "weeks") / 52.25),
-  #   #       faixa_etaria = cut(
-  #   #         idade,
-  #   #         breaks = seq(0, 100, by = 5),
-  #   #         right = FALSE,
-  #   #         labels = paste(seq(0, 95, by = 5), seq(4, 99, by = 5), sep = "-")
-  #   #       )
-  #   #     )
-  #   #   
-  #   #   # Contar o número de indivíduos em cada faixa etária e Sexo
-  #   #   dados_piramide <- dados %>%
-  #   #     group_by(faixa_etaria, Sexo) %>%
-  #   #     summarise(contagem = n()) %>%
-  #   #     ungroup() %>%
-  #   #     mutate(contagem = ifelse(Sexo == "M", -contagem, contagem))
-  #   #   
-  #   #   # Criar a pirâmide etária com ggplot2
-  #   #   p <- ggplot(dados_piramide, aes(x = faixa_etaria, y = contagem, fill = Sexo)) +
-  #   #     geom_bar(stat = "identity") +
-  #   #     coord_flip() +
-  #   #     scale_y_continuous(labels = abs) +
-  #   #     labs(
-  #   #       title = "Pirâmide Etária",
-  #   #       x = "Faixa Etária",
-  #   #       y = "População",
-  #   #       fill = "Sexo"
-  #   #     ) +
-  #   #     theme_minimal() +
-  #   #     scale_fill_manual(values = c("M" = "blue", "F" = "pink"))
-  #   #   
-  #   #   # Converte para um gráfico interativo com ggplotly
-  #   #   ggplotly(p)
-  #   #   
-  #   # }, error = function(e) {
-  #   #   plot_ly() %>%
-  #   #     add_annotations(
-  #   #       text = "Erro ao gerar o gráfico. Verifique os dados.",
-  #   #       showarrow = FALSE
-  #   #     )
-  #   # })
-  # })
-  
   # Calcular o total de participantes
   output$total_participantes <- renderText({
     total <- nrow(rv$base2_data)
@@ -586,8 +525,13 @@ server <- function(input, output, session) {
     },
     content = function(file) {
       req(rv$current_params)
+      req(rv$base2_data)
       
-      
+      dados <- rv$base2_data
+      datas_nascimento <- as.Date(dados$`Data de Nascimento`, origin = "1899-12-30")
+      data_atual <- as.Date(input$data_fim, origin = "1899-12-30") # mesma base de data
+      idades <- as.numeric(difftime(data_atual, datas_nascimento, units = "weeks")) %/% 52
+      sexo <- dados$Sexo
       
       # Críticas
       criticas <- data.frame(
@@ -608,7 +552,8 @@ server <- function(input, output, session) {
       
       # 1. Matrículas Repetidas
       criticas[1, 2] <- sum(ifelse(duplicated(rv$base2_data$Matrícula) | duplicated(rv$base2_data$Matrícula, fromLast = TRUE), 1, 0))
-      
+      # 2. Idade maior que 90 anos
+      criticas[2, 2] <- sum(ifelse(idades > 90, 1, 0))
       # Criando pasta excel
       wb <- createWorkbook()
       
