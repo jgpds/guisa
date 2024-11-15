@@ -11,7 +11,8 @@ pacman::p_load(
   readxl,
   dplyr,
   plotly,
-  ggplot2
+  ggplot2,
+  lookup
 )
 
 # Constantes e configurações
@@ -526,12 +527,26 @@ server <- function(input, output, session) {
     content = function(file) {
       req(rv$current_params)
       req(rv$base2_data)
+      req(rv$base1_data)
       
       dados <- rv$base2_data
       datas_nascimento <- as.Date(dados$`Data de Nascimento`, origin = "1899-12-30")
       data_atual <- as.Date(input$data_fim, origin = "1899-12-30") # mesma base de data
       idades <- as.numeric(difftime(data_atual, datas_nascimento, units = "weeks")) %/% 52
       sexo <- dados$Sexo
+      
+      # Salário Mínimo
+      sal_minimo <- rbcb::get_series(1619
+                                     , start_date = input$data_inicio, end_date = input$data_fim)
+      sal_minimo <- tail(sal_minimo$`1619`, n = 1)
+      
+      base_anterior <- rv$base1_data      
+      base_atual <- rv$base2_data
+      
+      # Interseção
+      matrículas_comuns  <- intersect(base_atual$Matrícula, base_anterior$Matrícula)
+      base_atual_x_anterior <- data.frame(Matrículas = matrículas_comuns)
+      
       
       # Críticas
       criticas <- data.frame(
@@ -554,6 +569,25 @@ server <- function(input, output, session) {
       criticas[1, 2] <- sum(ifelse(duplicated(rv$base2_data$Matrícula) | duplicated(rv$base2_data$Matrícula, fromLast = TRUE), 1, 0))
       # 2. Idade maior que 90 anos
       criticas[2, 2] <- sum(ifelse(idades > 90, 1, 0))
+      # 3. Benefício menor que o salário mínimo
+      criticas[3, 2] <- sum(ifelse(base_atual$`Benefício Complementar` < sal_minimo, 1, 0))
+      # Data de Início de Benefício menor que a Data de Nascimento
+      
+      # Data de Nascimento divergente
+      atual <- vlookup(base_atual_x_anterior$`Matrícula`, base_atual, "Matrícula", "Data de Nascimento")
+      anterior <- vlookup(base_atual_x_anterior$`Matrícula`, base_anterior, "Matrícula", "Data de Nascimento")
+      criticas[5, 2] <- sum(ifelse(atual != anterior, 1, 0))
+      
+      # Sexo divergente
+      atual <- vlookup(base_atual_x_anterior$`Matrícula`, base_atual, "Matrícula", "Sexo")
+      anterior <- vlookup(base_atual_x_anterior$`Matrícula`, base_anterior, "Matrícula", "Sexo")
+      criticas[6, 2] <- sum(ifelse(atual != anterior, 1, 0))
+      
+      # Tipo de Benefício divergente
+      atual <- vlookup(base_atual_x_anterior$`Matrícula`, base_atual, "Matrícula", "Tipo do Benefício")
+      anterior <- vlookup(base_atual_x_anterior$`Matrícula`, base_anterior, "Matrícula", "Tipo do Benefício")
+      criticas[7, 2] <- sum(ifelse(atual != anterior, 1, 0))
+      
       # Criando pasta excel
       wb <- createWorkbook()
       
@@ -624,6 +658,10 @@ server <- function(input, output, session) {
       writeData(wb, "Divergências", criticas, startCol = 2, startRow = 3)
       
       mergeCells(wb, sheet = "Divergências", cols = 2:(1+ncol(criticas)), rows = 2)
+      
+      setColWidths(wb, sheet = "Divergências", cols = 2, widths = 57) 
+      setColWidths(wb, sheet = "Divergências", cols = 3, widths = 11) 
+      setColWidths(wb, sheet = "Divergências", cols = 4, widths = 21) 
       
       addStyle(wb, sheet = "Divergências", style_cabecalho4, rows = 2, cols = 2:(1+ncol(criticas)), gridExpand = TRUE)
       addStyle(wb, sheet = "Divergências", style_cabecalho2, rows = 3, cols = 2:(1+ncol(criticas)), gridExpand = TRUE)
