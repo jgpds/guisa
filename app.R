@@ -547,6 +547,20 @@ server <- function(input, output, session) {
       matrículas_comuns  <- intersect(base_atual$Matrícula, base_anterior$Matrícula)
       base_atual_x_anterior <- data.frame(Matrículas = matrículas_comuns)
       
+      # Bases Auxiliares
+      divergencias_atual <- tibble(                                             
+        Matrícula = base_atual$Matrícula,
+        `Matrículas Repetidas` = ifelse(duplicated(base_atual$Matrícula) | duplicated(base_atual$Matrícula, fromLast = TRUE), 1, 0),
+        `Idade maior que 90 anos` = ifelse(idades > 90, 1, 0),
+        `Benefício menor que o salário mínimo` = ifelse(base_atual$`Benefício Complementar` < sal_minimo, 1, 0),
+        `Data de Início de Benefício menor que a Data de Nascimento` = rep(NA,nrow(base_atual)))
+      
+      divergencias_atual_anterior <- tibble(                                             
+        Matrícula = base_atual_x_anterior$`Matrículas`,
+        `Data de Nascimento divergente` = rep(NA,nrow(base_atual_x_anterior)),
+        `Sexo divergente` = rep(NA,nrow(base_atual_x_anterior)),
+        `Tipo de Benefício divergente` = rep(NA,nrow(base_atual_x_anterior)),
+        `Benefício Complementar com variações significativas` = rep(NA,nrow(base_atual_x_anterior)))
       
       # Críticas
       criticas <- data.frame(
@@ -566,27 +580,72 @@ server <- function(input, output, session) {
       colnames(criticas) <- c("Críticas", "Frequência", "Percentual Sobre a Base")
       
       # 1. Matrículas Repetidas
-      criticas[1, 2] <- sum(ifelse(duplicated(rv$base2_data$Matrícula) | duplicated(rv$base2_data$Matrícula, fromLast = TRUE), 1, 0))
+      
+      criticas[1, 2] <- sum(ifelse(duplicated(rv$base2_data$Matrícula) | duplicated(rv$base2_data$Matrícula, fromLast = TRUE), 1, 0)) # Ocorrëncias
+      criticas[1, 3] <- paste0(round(criticas[1, 2]/nrow(base_atual) * 100, 2), "%") # Porcentagem sobre a base
+      
       # 2. Idade maior que 90 anos
-      criticas[2, 2] <- sum(ifelse(idades > 90, 1, 0))
+      criticas[2, 2] <- sum(ifelse(idades > 90, 1, 0)) # Ocorrëncias
+      criticas[2, 3] <- paste0(round(criticas[2, 2]/nrow(base_atual) * 100, 2), "%") # Porcentagem sobre a base
+      
       # 3. Benefício menor que o salário mínimo
-      criticas[3, 2] <- sum(ifelse(base_atual$`Benefício Complementar` < sal_minimo, 1, 0))
+      criticas[3, 2] <- sum(ifelse(base_atual$`Benefício Complementar` < sal_minimo, 1, 0)) # Ocorrëncias
+      criticas[3, 3] <- paste0(round(criticas[3, 2]/nrow(base_atual) * 100, 2), "%") # Porcentagem sobre a base
+      
       # Data de Início de Benefício menor que a Data de Nascimento
       
       # Data de Nascimento divergente
       atual <- vlookup(base_atual_x_anterior$`Matrícula`, base_atual, "Matrícula", "Data de Nascimento")
       anterior <- vlookup(base_atual_x_anterior$`Matrícula`, base_anterior, "Matrícula", "Data de Nascimento")
-      criticas[5, 2] <- sum(ifelse(atual != anterior, 1, 0))
+      divergencias_atual_anterior$`Data de Nascimento divergente` <- ifelse(atual != anterior, 1, 0)
+      criticas[5, 2] <- sum(divergencias_atual_anterior$`Data de Nascimento divergente`) # Ocorrëncias
+      criticas[5, 3] <- paste0(round(criticas[5, 2]/nrow(base_atual) * 100, 2), "%") # Porcentagem sobre a base
       
       # Sexo divergente
       atual <- vlookup(base_atual_x_anterior$`Matrícula`, base_atual, "Matrícula", "Sexo")
       anterior <- vlookup(base_atual_x_anterior$`Matrícula`, base_anterior, "Matrícula", "Sexo")
-      criticas[6, 2] <- sum(ifelse(atual != anterior, 1, 0))
+      divergencias_atual_anterior$`Sexo divergente` <- ifelse(atual != anterior, 1, 0)
+      criticas[6, 2] <- sum(ifelse(atual != anterior, 1, 0)) # Ocorrëncias
+      criticas[6, 3] <- paste0(round(criticas[6, 2]/nrow(base_atual) * 100, 2), "%") # Porcentagem sobre a base
       
       # Tipo de Benefício divergente
       atual <- vlookup(base_atual_x_anterior$`Matrícula`, base_atual, "Matrícula", "Tipo do Benefício")
       anterior <- vlookup(base_atual_x_anterior$`Matrícula`, base_anterior, "Matrícula", "Tipo do Benefício")
-      criticas[7, 2] <- sum(ifelse(atual != anterior, 1, 0))
+      divergencias_atual_anterior$`Tipo de Benefício divergente` <- ifelse(atual != anterior, 1, 0)
+      criticas[7, 2] <- sum(ifelse(atual != anterior, 1, 0)) # Ocorrëncias
+      criticas[7, 3] <- paste0(round(criticas[7, 2]/nrow(base_atual) * 100, 2), "%") # Porcentagem sobre a base
+      
+      
+      # Anexo
+      
+      # Código 1
+      df1_anexoI_titulo <- "Código 1\nMatrículas Repetidas"
+      df1_anexoI <- data.frame(Matrícula = (divergencias_atual %>% filter(`Matrículas Repetidas` == 1))$Matrícula)
+      # Código 2
+      df2_anexoI_titulo <- "Código 2\nIdade maior que 90 anos"
+      df2_anexoI <- data.frame(Matrícula = (divergencias_atual %>% filter(`Idade maior que 90 anos` == 1))$Matrícula)
+      # Código 3
+      df3_anexoI_titulo <- "Código 3\nBenefício menor que o salário mínimo"
+      df3_anexoI <- data.frame(Matrícula = (divergencias_atual %>% filter(`Benefício menor que o salário mínimo` == 1))$Matrícula)
+      # Código 4
+      
+      # Código 5
+      df5_anexoI_titulo <- "Código 5\nData de Nascimento divergente"
+      df5_anexoI <- data.frame(Matrícula = (divergencias_atual_anterior %>% filter(`Data de Nascimento divergente` == 1))$Matrícula)
+      
+      # Código 6
+      df6_anexoI_titulo <- "Código 6\nSexo divergente"
+      df6_anexoI <- data.frame(Matrícula = (divergencias_atual_anterior %>% filter(`Sexo divergente` == 1))$Matrícula)
+      
+      # Código 6
+      df7_anexoI_titulo <- "Código 7\nTipo de Benefício divergente"
+      df7_anexoI <- data.frame(Matrícula = (divergencias_atual_anterior %>% filter(`Tipo de Benefício divergente` == 1))$Matrícula)
+      
+      # Auxílio para loop ao preencher excel
+      dfs_anexoI_títulos <- c(df1_anexoI_titulo, df2_anexoI_titulo, df3_anexoI_titulo, df5_anexoI_titulo, df6_anexoI_titulo, df7_anexoI_titulo)
+      dfs_anexoI <- list(df1_anexoI, df2_anexoI, df3_anexoI, df5_anexoI, df6_anexoI, df7_anexoI)
+      
+      
       
       # Criando pasta excel
       wb <- createWorkbook()
@@ -669,6 +728,32 @@ server <- function(input, output, session) {
       addStyle(wb, sheet = "Divergências", style_corpo_bordas, rows = 4:(3+nrow(criticas)), cols = 3:(1+ncol(criticas)), gridExpand = TRUE)
       # Aba Anexo
       addWorksheet(wb, "Anexo")
+      
+      starting_col <- 2
+      for (i in 1:length(dfs_anexoI_títulos)){
+        if (nrow(dfs_anexoI[[i]]) > 0 ){
+          writeData(wb, sheet = "Anexo", x = dfs_anexoI_títulos[i], startCol = starting_col, startRow = 2)
+          writeData(wb, sheet = "Anexo", x = dfs_anexoI[[i]], startCol = starting_col, startRow = 3)
+          writeData(wb, sheet = "Anexo", x = "Justificativa", startCol = starting_col + length(dfs_anexoI[[i]]), startRow = 3) # Justificativa
+          
+          mergeCells(wb, sheet = "Anexo", cols = starting_col:(starting_col+length(dfs_anexoI[[i]])-1), rows = 2) # Unindo colunas do título
+          
+          setColWidths(wb, sheet = "Anexo", cols = starting_col, widths = 14) # Largura primeira coluna (Matricula)
+          setColWidths(wb, sheet = "Anexo", cols = (starting_col+1):(starting_col+length(dfs_anexoI[[i]])-1), widths = 22) # Largura resto dos subtítulos
+          setColWidths(wb, sheet = "Anexo", cols = starting_col+length(dfs_anexoI[[i]]), widths = 36) # Largura Justificativa
+          
+          addStyle(wb, sheet = "Anexo", style_cabecalho4, rows = 2, cols = starting_col:(starting_col+length(dfs_anexoI[[i]])-1))
+          addStyle(wb, sheet = "Anexo", style_cabecalho2, rows = 3, cols = starting_col:(starting_col+length(dfs_anexoI[[i]])))
+          addStyle(wb, sheet = "Anexo", style_corpo_bordas, rows = 4:(3+nrow(dfs_anexoI[[i]])), cols = starting_col:(starting_col+length(dfs_anexoI[[i]])), gridExpand = TRUE)
+          
+          setColWidths(wb, sheet = "Anexo", cols = starting_col + length(dfs_anexoI[[i]]) + 1, widths = 1)
+          starting_col <- starting_col + length(dfs_anexoI[[i]]) + 2
+        }
+      }
+      
+      setColWidths(wb, sheet = "Anexo", cols = 1, widths = 1)
+      setRowHeights(wb, sheet = "Anexo", rows = 1, heights = 9)
+      setRowHeights(wb, sheet = "Anexo", rows = 2, heights = 44)
       
       # Salvar o workbook
       saveWorkbook(wb, file, overwrite = TRUE)
