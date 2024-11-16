@@ -112,8 +112,9 @@ ui <- navbarPage(
                selectizeInput(
                  "margem_tolerancia",
                  tags$span(icon("sliders-h"), "Margem de Tolerância (%):"),
-                 choices = NULL,
-                 multiple = TRUE
+                 choices = c(1, 2, 3, 4, 5, 10),
+                 multiple = TRUE,
+                 selected = 5
                ),
                
                hr(),
@@ -260,7 +261,8 @@ ui <- navbarPage(
                  ),
                  
                  h2("4. Exportação"),
-                 p("Use o botão 'Baixar Relatório Detalhado' para exportar a análise completa em formato Excel.")
+                 p("Use o botão abaixo para baixar o modelo de planilhas:"),
+                 downloadButton("download_planilhas", "Baixar Modelos de Planilhas")
                )
              )
            )
@@ -473,8 +475,20 @@ server <- function(input, output, session) {
     return(paste0("Masculino: ", num_homens, "\nFeminimo: ", num_mulheres))
   })
   
-  
-  
+  # Link download sobre
+  output$download_planilhas <- downloadHandler(
+    filename = function() {
+      paste("Modelos-Planilhas-", Sys.Date(), ".zip", sep = "")
+    },
+    content = function(file) {
+      # Diretório dos arquivos existentes
+      file1 <- "datasets/Base Anterior.xlsx"
+      file2 <- "datasets/Base Atual.xlsx"
+      
+      # Compactando os arquivos em um único ZIP
+      zip::zipr(file, files = c(file1, file2))
+    }
+  )
   
   
   
@@ -757,8 +771,26 @@ server <- function(input, output, session) {
       
       # Salvar o workbook
       saveWorkbook(wb, file, overwrite = TRUE)
+      rv$criticas <- criticas
     }
   )
+  
+  output$divergencias <- renderDT({
+    req(rv$criticas)
+    
+    datatable(
+      rv$criticas,
+      options = list(
+        pageLength = 8,
+        dom = 'rtip',
+        language = list(
+          info = "Mostrando _START_ até _END_ de _TOTAL_ registros"
+        )
+      ),
+      class = 'cell-border stripe hover',
+      rownames = FALSE
+    )
+  })
   
 }
 
