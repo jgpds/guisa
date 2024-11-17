@@ -635,12 +635,17 @@ server <- function(input, output, session) {
       # Código 1
       df1_anexoI_titulo <- "Código 1\nMatrículas Repetidas"
       df1_anexoI <- data.frame(Matrícula = (divergencias_atual %>% filter(`Matrículas Repetidas` == 1))$Matrícula)
+      
       # Código 2
       df2_anexoI_titulo <- "Código 2\nIdade maior que 90 anos"
       df2_anexoI <- data.frame(Matrícula = (divergencias_atual %>% filter(`Idade maior que 90 anos` == 1))$Matrícula)
+      df2_anexoI$`Data de Nascimento` <- vlookup(df2_anexoI$`Matrícula`, base_atual, "Matrícula", "Data de Nascimento")
+      df2_anexoI$`Idade` <- as.numeric(difftime(data_atual, df2_anexoI$`Data de Nascimento`, units = "weeks")) %/% 52
+      
       # Código 3
       df3_anexoI_titulo <- "Código 3\nBenefício menor que o salário mínimo"
       df3_anexoI <- data.frame(Matrícula = (divergencias_atual %>% filter(`Benefício menor que o salário mínimo` == 1))$Matrícula)
+      
       # Código 4
       
       # Código 5
