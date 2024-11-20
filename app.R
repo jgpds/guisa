@@ -645,7 +645,8 @@ server <- function(input, output, session) {
       # Código 3
       df3_anexoI_titulo <- "Código 3\nBenefício menor que o salário mínimo"
       df3_anexoI <- data.frame(Matrícula = (divergencias_atual %>% filter(`Benefício menor que o salário mínimo` == 1))$Matrícula)
-      
+      df3_anexoI$`Benefício Complementar` <- vlookup(df3_anexoI$`Matrícula`, base_atual, "Matrícula", "Benefício Complementar")
+      df3_anexoI$`Salário mínimo` <- sal_minimo
       # Código 4
       
       # Código 5
