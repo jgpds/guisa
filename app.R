@@ -652,6 +652,8 @@ server <- function(input, output, session) {
       # Código 5
       df5_anexoI_titulo <- "Código 5\nData de Nascimento divergente"
       df5_anexoI <- data.frame(Matrícula = (divergencias_atual_anterior %>% filter(`Data de Nascimento divergente` == 1))$Matrícula)
+      df5_anexoI$`Data de Nascimento Anterior` <- vlookup(df5_anexoI$`Matrícula`, base_atual, "Matrícula", "Data de Nascimento")
+      df5_anexoI$`Data de Nascimento Atual` <- vlookup(df5_anexoI$`Matrícula`, base_anterior, "Matrícula", "Data de Nascimento")
       
       # Código 6
       df6_anexoI_titulo <- "Código 6\nSexo divergente"
@@ -754,17 +756,15 @@ server <- function(input, output, session) {
         if (nrow(dfs_anexoI[[i]]) > 0 ){
           writeData(wb, sheet = "Anexo", x = dfs_anexoI_títulos[i], startCol = starting_col, startRow = 2)
           writeData(wb, sheet = "Anexo", x = dfs_anexoI[[i]], startCol = starting_col, startRow = 3)
-          writeData(wb, sheet = "Anexo", x = "Justificativa", startCol = starting_col + length(dfs_anexoI[[i]]), startRow = 3) # Justificativa
           
           mergeCells(wb, sheet = "Anexo", cols = starting_col:(starting_col+length(dfs_anexoI[[i]])-1), rows = 2) # Unindo colunas do título
           
           setColWidths(wb, sheet = "Anexo", cols = starting_col, widths = 14) # Largura primeira coluna (Matricula)
           setColWidths(wb, sheet = "Anexo", cols = (starting_col+1):(starting_col+length(dfs_anexoI[[i]])-1), widths = 22) # Largura resto dos subtítulos
-          setColWidths(wb, sheet = "Anexo", cols = starting_col+length(dfs_anexoI[[i]]), widths = 36) # Largura Justificativa
           
           addStyle(wb, sheet = "Anexo", style_cabecalho4, rows = 2, cols = starting_col:(starting_col+length(dfs_anexoI[[i]])-1))
-          addStyle(wb, sheet = "Anexo", style_cabecalho2, rows = 3, cols = starting_col:(starting_col+length(dfs_anexoI[[i]])))
-          addStyle(wb, sheet = "Anexo", style_corpo_bordas, rows = 4:(3+nrow(dfs_anexoI[[i]])), cols = starting_col:(starting_col+length(dfs_anexoI[[i]])), gridExpand = TRUE)
+          addStyle(wb, sheet = "Anexo", style_cabecalho2, rows = 3, cols = starting_col:(starting_col+length(dfs_anexoI[[i]])-1))
+          addStyle(wb, sheet = "Anexo", style_corpo_bordas, rows = 4:(3+nrow(dfs_anexoI[[i]])), cols = starting_col:(starting_col+length(dfs_anexoI[[i]])-1), gridExpand = TRUE)
           
           setColWidths(wb, sheet = "Anexo", cols = starting_col + length(dfs_anexoI[[i]]) + 1, widths = 1)
           starting_col <- starting_col + length(dfs_anexoI[[i]]) + 2
