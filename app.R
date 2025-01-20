@@ -607,6 +607,8 @@ server <- function(input, output, session) {
       criticas[3, 3] <- paste0(round(criticas[3, 2]/nrow(base_atual) * 100, 2), "%") # Porcentagem sobre a base
       
       # Data de Início de Benefício menor que a Data de Nascimento
+      criticas[4, 2] <- sum(ifelse(base_atual$`Data de Início de Benefício` < base_atual$`Data de Nascimento`, 1, 0)) # Ocorrëncias
+      criticas[4, 3] <- paste0(round(criticas[4, 2]/nrow(base_atual) * 100, 2), "%") # Porcentagem sobre a base
       
       # Data de Nascimento divergente
       atual <- vlookup(base_atual_x_anterior$`Matrícula`, base_atual, "Matrícula", "Data de Nascimento")
