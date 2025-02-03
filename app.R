@@ -631,6 +631,16 @@ server <- function(input, output, session) {
       criticas[7, 2] <- sum(ifelse(atual != anterior, 1, 0)) # Ocorrëncias
       criticas[7, 3] <- paste0(round(criticas[7, 2]/nrow(base_atual) * 100, 2), "%") # Porcentagem sobre a base
       
+      # Benefício complementar com divergências significativas
+      atual <- vlookup(base_atual_x_anterior$`Matrícula`, base_atual, "Matrícula", "Benefício Complementar")
+      anterior <- vlookup(base_atual_x_anterior$`Matrícula`, base_anterior, "Matrícula", "Benefício Complementar")
+      limite_superior <- 3.56 / 100 + 1 / 100  # 3,56% + 1%
+      limite_inferior <- 3.56 / 100 - 1 / 100  # 3,56% - 1%
+      variacao <- (atual - anterior) / anterior
+      divergencias_atual_anterior$`Benefício Complementar com variações significativas` <- ifelse(abs(variacao) > limite_superior, 1, 0)
+      criticas[8, 2] <- sum(divergencias_atual_anterior$`Benefício Complementar com variações significativas`) # Ocorrëncias
+      criticas[8, 3] <- paste0(round(criticas[8, 2]/nrow(base_atual) * 100, 2), "%") # Porcentagem sobre a base
+      
       
       # Anexo
       
@@ -660,14 +670,24 @@ server <- function(input, output, session) {
       # Código 6
       df6_anexoI_titulo <- "Código 6\nSexo divergente"
       df6_anexoI <- data.frame(Matrícula = (divergencias_atual_anterior %>% filter(`Sexo divergente` == 1))$Matrícula)
+      df6_anexoI$`Sexo Anterior` <- vlookup(df6_anexoI$`Matrícula`, base_atual, "Matrícula", "Sexo")
+      df6_anexoI$`Sexo Atual` <- vlookup(df6_anexoI$`Matrícula`, base_anterior, "Matrícula", "Sexo")
       
-      # Código 6
+      # Código 7
       df7_anexoI_titulo <- "Código 7\nTipo de Benefício divergente"
       df7_anexoI <- data.frame(Matrícula = (divergencias_atual_anterior %>% filter(`Tipo de Benefício divergente` == 1))$Matrícula)
       
+      # Código 8
+      df8_anexoI_titulo <- "Código 8\nBenefício Complementar com variações significativas"
+      df8_anexoI <- data.frame(Matrícula = (divergencias_atual_anterior %>% filter(`Benefício Complementar com variações significativas` == 1))$Matrícula)
+      df8_anexoI$`Benefício Anterior` <- vlookup(df8_anexoI$`Matrícula`, base_atual, "Matrícula", "Benefício Complementar")
+      df8_anexoI$`Benefício Atual` <- vlookup(df8_anexoI$`Matrícula`, base_anterior, "Matrícula", "Benefício Complementar")
+      df8_anexoI$`Variação` <- (df8_anexoI$`Benefício Atual` - df8_anexoI$`Benefício Anterior`) / df8_anexoI$`Benefício Anterior`
+      df8_anexoI$`Variação Esperada` <- "margem"
+      
       # Auxílio para loop ao preencher excel
-      dfs_anexoI_títulos <- c(df1_anexoI_titulo, df2_anexoI_titulo, df3_anexoI_titulo, df5_anexoI_titulo, df6_anexoI_titulo, df7_anexoI_titulo)
-      dfs_anexoI <- list(df1_anexoI, df2_anexoI, df3_anexoI, df5_anexoI, df6_anexoI, df7_anexoI)
+      dfs_anexoI_títulos <- c(df1_anexoI_titulo, df2_anexoI_titulo, df3_anexoI_titulo, df5_anexoI_titulo, df6_anexoI_titulo, df7_anexoI_titulo, df8_anexoI_titulo)
+      dfs_anexoI <- list(df1_anexoI, df2_anexoI, df3_anexoI, df5_anexoI, df6_anexoI, df7_anexoI, df8_anexoI)
       
       
       
