@@ -676,6 +676,8 @@ server <- function(input, output, session) {
       # Código 7
       df7_anexoI_titulo <- "Código 7\nTipo de Benefício divergente"
       df7_anexoI <- data.frame(Matrícula = (divergencias_atual_anterior %>% filter(`Tipo de Benefício divergente` == 1))$Matrícula)
+      df7_anexoI$`Tipo de Benefício Anterior` <- vlookup(df7_anexoI$`Matrícula`, base_atual, "Matrícula", "Tipo do Benefício")
+      df7_anexoI$`Tipo de Benefício Atual` <- vlookup(df7_anexoI$`Matrícula`, base_anterior, "Matrícula", "Tipo do Benefício")
       
       # Código 8
       df8_anexoI_titulo <- "Código 8\nBenefício Complementar com variações significativas"
@@ -696,6 +698,7 @@ server <- function(input, output, session) {
       
       style_corpo_bordas <- createStyle(halign = "center", fontSize = 10, border = "TopBottomLeftRight", borderColour = "#A6A6A6", fontColour = "#262626")
       style_corpo_bordas_left <- createStyle(halign = "left", fontSize = 10, border = "TopBottomLeftRight", borderColour = "#A6A6A6", fontColour = "#262626")
+      style_corpo_bordas_amarelo <- createStyle(halign = "left", fontSize = 10, fgFill = "#ffff66", border = "TopBottomLeftRight", borderColour = "#A6A6A6", fontColour = "#262626")
       style_cabecalho2 <- createStyle(fontColour = "#262626", fgFill = "#D9D9D9", border = "TopBottomLeftRight", borderColour = "#A6A6A6",fontSize = 10, halign = "center", valign = "center", textDecoration = "bold", wrapText = TRUE)
       style_cabecalho3 <- createStyle(fontColour = "#262626", fgFill = "#ffde21", border = "TopBottomLeftRight",fontSize = 10, borderColour = "#A6A6A6", halign = "center", valign = "center", textDecoration = "bold", wrapText = TRUE)
       style_cabecalho4 <- createStyle(fontColour = "#f2eded", fgFill = "#474747", border = "TopBottomLeftRight", borderColour = "#A6A6A6",fontSize = 11, halign = "center", valign = "center", textDecoration = "bold", wrapText = TRUE)
@@ -717,16 +720,37 @@ server <- function(input, output, session) {
             sprintf("%.2f%%", rv$current_params$acumulado * 100)
           )
         )
-      )
+        , startCol = 2, startRow = 2)
       
-      # Estilizar a aba de parâmetros
-      headerStyle <- createStyle(
-        textDecoration = "bold",
-        border = "Bottom",
-        borderStyle = "medium"
-      )
-      addStyle(wb, "Parâmetros", headerStyle, rows = 1, cols = 1:2)
-      setColWidths(wb, "Parâmetros", cols = 1:2, widths = "auto")
+      writeData(wb, "Parâmetros", "Base Anterior", startCol = 5, startRow = 2)
+      writeData(wb, "Parâmetros", "Base Atual", startCol = 5, startRow = 3)
+      writeData(wb, "Parâmetros", input$base1$name, startCol = 6, startRow = 2)
+      writeData(wb, "Parâmetros", input$base2$name, startCol = 6, startRow = 3)
+      
+      writeData(wb, "Parâmetros", "Path Anterior", startCol = 5, startRow = 5)
+      writeData(wb, "Parâmetros", "Path Atual", startCol = 5, startRow = 6)
+      writeData(wb, "Parâmetros", input$base1$datapath, startCol = 6, startRow = 5)
+      writeData(wb, "Parâmetros", input$base2$datapath, startCol = 6, startRow = 6)
+      
+      addStyle(wb, "Parâmetros", style_cabecalho2, rows = 2, cols = 2:3, gridExpand = TRUE)
+      addStyle(wb, "Parâmetros", style_corpo_bordas_left, rows = 3:6, cols = 2, gridExpand = TRUE)
+      addStyle(wb, "Parâmetros", style_corpo_bordas, rows = 3:6, cols = 3, gridExpand = TRUE)
+      addStyle(wb, "Parâmetros", style_cabecalho2, rows = 2, cols = 5, gridExpand = TRUE)
+      addStyle(wb, "Parâmetros", style_cabecalho2, rows = 3, cols = 5, gridExpand = TRUE)
+      addStyle(wb, "Parâmetros", style_cabecalho2, rows = 5, cols = 5, gridExpand = TRUE)
+      addStyle(wb, "Parâmetros", style_cabecalho2, rows = 6, cols = 5, gridExpand = TRUE)
+      addStyle(wb, "Parâmetros", style_corpo_bordas_amarelo, rows = 2, cols = 6, gridExpand = TRUE)
+      addStyle(wb, "Parâmetros", style_corpo_bordas_amarelo, rows = 3, cols = 6, gridExpand = TRUE)
+      addStyle(wb, "Parâmetros", style_corpo_bordas_amarelo, rows = 5, cols = 6, gridExpand = TRUE)
+      addStyle(wb, "Parâmetros", style_corpo_bordas_amarelo, rows = 6, cols = 6, gridExpand = TRUE)
+      
+      setColWidths(wb, "Parâmetros", cols = 1, widths = 3)
+      setColWidths(wb, "Parâmetros", cols = 2, widths = 15)
+      setColWidths(wb, "Parâmetros", cols = 3, widths = 11)
+      setColWidths(wb, "Parâmetros", cols = 4, widths = 3)
+      setColWidths(wb, "Parâmetros", cols = 6, widths = "auto")
+      
+      setRowHeights(wb, "Parâmetros", rows = 2, heights = 14.4)
       
       # Aba Base 1
       if (!is.null(rv$base1_data)) {
