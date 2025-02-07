@@ -634,8 +634,9 @@ server <- function(input, output, session) {
       # Benefício complementar com divergências significativas
       atual <- vlookup(base_atual_x_anterior$`Matrícula`, base_atual, "Matrícula", "Benefício Complementar")
       anterior <- vlookup(base_atual_x_anterior$`Matrícula`, base_anterior, "Matrícula", "Benefício Complementar")
-      limite_superior <- 3.56 / 100 + 1 / 100  # 3,56% + 1%
-      limite_inferior <- 3.56 / 100 - 1 / 100  # 3,56% - 1%
+      acumulado = rv$current_params$acumulado
+      limite_superior <- acumulado / 100 + 1 / 100  # acumulado + 1%
+      limite_inferior <- acumulado / 100 - 1 / 100  # acumulado - 1%
       variacao <- (atual - anterior) / anterior
       divergencias_atual_anterior$`Benefício Complementar com variações significativas` <- ifelse(abs(variacao) > limite_superior, 1, 0)
       criticas[8, 2] <- sum(divergencias_atual_anterior$`Benefício Complementar com variações significativas`) # Ocorrëncias
@@ -685,11 +686,29 @@ server <- function(input, output, session) {
       df8_anexoI$`Benefício Anterior` <- vlookup(df8_anexoI$`Matrícula`, base_atual, "Matrícula", "Benefício Complementar")
       df8_anexoI$`Benefício Atual` <- vlookup(df8_anexoI$`Matrícula`, base_anterior, "Matrícula", "Benefício Complementar")
       df8_anexoI$`Variação` <- (df8_anexoI$`Benefício Atual` - df8_anexoI$`Benefício Anterior`) / df8_anexoI$`Benefício Anterior`
-      df8_anexoI$`Variação Esperada` <- "margem"
+      df8_anexoI$`Variação Esperada` <- acumulado
       
       # Auxílio para loop ao preencher excel
       dfs_anexoI_títulos <- c(df1_anexoI_titulo, df2_anexoI_titulo, df3_anexoI_titulo, df5_anexoI_titulo, df6_anexoI_titulo, df7_anexoI_titulo, df8_anexoI_titulo)
       dfs_anexoI <- list(df1_anexoI, df2_anexoI, df3_anexoI, df5_anexoI, df6_anexoI, df7_anexoI, df8_anexoI)
+      
+      # FORMATAÇÃO DATAS
+      base_atual <- base_atual %>%
+        mutate(across(c("Data de Nascimento", "Data de Início de Benefício",
+                        "Data de Nascimento Dep. 1", "Data de Nascimento Dep. 2", "Data de Nascimento Dep. 3"), 
+                      ~ format(as.Date(.), "%d/%m/%Y")))
+      
+      base_anterior <- base_anterior %>%
+        mutate(across(c("Data de Nascimento", "Data de Início de Benefício",
+                        "Data de Nascimento Dep. 1", "Data de Nascimento Dep. 2", "Data de Nascimento Dep. 3"), 
+                      ~ format(as.Date(.), "%d/%m/%Y")))
+      
+      # Movimentação
+      entradas <- dplyr::anti_join(base_atual, base_anterior, by = "Matrícula") # Quem está na base atual e não está na base anterior
+      entradas <- entradas %>% select("Matrícula", "Sexo", "Data de Nascimento", "Benefício Complementar")
+      saídas <- dplyr::anti_join(base_anterior, base_atual, by = "Matrícula") #  Quem está na base anterior e não está na base atual
+      saídas <- saídas %>% select("Matrícula", "Sexo", "Data de Nascimento", "Benefício Complementar")
+      
       
       
       
@@ -748,36 +767,61 @@ server <- function(input, output, session) {
       setColWidths(wb, "Parâmetros", cols = 2, widths = 15)
       setColWidths(wb, "Parâmetros", cols = 3, widths = 11)
       setColWidths(wb, "Parâmetros", cols = 4, widths = 3)
-      setColWidths(wb, "Parâmetros", cols = 6, widths = "auto")
+      setColWidths(wb, "Parâmetros", cols = 6, widths = 130)
       
       setRowHeights(wb, "Parâmetros", rows = 2, heights = 14.4)
       
       # Aba Base 1
-      if (!is.null(rv$base1_data)) {
+      if (!is.null(base_anterior)) {
         addWorksheet(wb, "Base 1")
-        writeData(wb, "Base 1", rv$base1_data, startCol = 2, startRow = 2)
+        writeData(wb, "Base 1", base_anterior, startCol = 2, startRow = 2)
         setColWidths(wb, "Base 1", cols = 1, widths = 2.5)
-        setColWidths(wb, "Base 1", cols = 2:ncol(rv$base1_data), widths = "auto")
+        setColWidths(wb, "Base 1", cols = 2:ncol(base_anterior), widths = "auto")
         
-        addStyle(wb, sheet = 2, style_cabecalho2, rows = 2, cols = 2:(1+ncol(rv$base1_data)))
-        addStyle(wb, sheet = 2, style_corpo_bordas, rows = 3:(2+nrow(rv$base1_data)), cols = 2:(1+ncol(rv$base1_data)), gridExpand = TRUE)
+        addStyle(wb, sheet = 2, style_cabecalho2, rows = 2, cols = 2:(1+ncol(base_anterior)))
+        addStyle(wb, sheet = 2, style_corpo_bordas, rows = 3:(2+nrow(base_anterior)), cols = 2:(1+ncol(base_anterior)), gridExpand = TRUE)
         
         
       }
       
       # Aba Base 2
-      if (!is.null(rv$base2_data)) {
+      if (!is.null(base_atual)) {
         addWorksheet(wb, "Base 2")
-        writeData(wb, "Base 2", rv$base2_data, startCol = 2, startRow = 2)
+        writeData(wb, "Base 2", base_atual, startCol = 2, startRow = 2)
         setColWidths(wb, "Base 2", cols = 1, widths = 2.5)
-        setColWidths(wb, "Base 2", cols = 2:ncol(rv$base2_data), widths = "auto")
+        setColWidths(wb, "Base 2", cols = 2:ncol(base_atual), widths = "auto")
         
-        addStyle(wb, sheet = "Base 2", style_cabecalho2, rows = 2, cols = 2:(1+ncol(rv$base2_data)))
-        addStyle(wb, sheet = "Base 2", style_corpo_bordas, rows = 3:(2+nrow(rv$base2_data)), cols = 2:(1+ncol(rv$base2_data)), gridExpand = TRUE)
+        addStyle(wb, sheet = "Base 2", style_cabecalho2, rows = 2, cols = 2:(1+ncol(base_atual)))
+        addStyle(wb, sheet = "Base 2", style_corpo_bordas, rows = 3:(2+nrow(base_atual)), cols = 2:(1+ncol(base_atual)), gridExpand = TRUE)
       }
       
       # Aba de Parâmetros
       addWorksheet(wb, "Movimentação")
+      writeData(wb, "Movimentação", "Entradas", startCol = 2, startRow = 2)
+      writeData(wb, "Movimentação", entradas, startCol = 2, startRow = 3)
+      writeData(wb, "Movimentação", "Saídas", startCol = 7, startRow = 2)
+      writeData(wb, "Movimentação", saídas, startCol = 7, startRow = 3)
+      
+      addStyle(wb, sheet = "Movimentação", style_cabecalho4, rows = 2, cols = 2:5, gridExpand = TRUE)
+      addStyle(wb, sheet = "Movimentação", style_cabecalho2, rows = 3, cols = 2:5, gridExpand = TRUE)
+      addStyle(wb, sheet = "Movimentação", style_corpo_bordas, rows = 4:(3+nrow(entradas)), cols = 2:(1+ncol(entradas)), gridExpand = TRUE)
+      
+      addStyle(wb, sheet = "Movimentação", style_cabecalho4, rows = 2, cols = 7:10, gridExpand = TRUE)
+      addStyle(wb, sheet = "Movimentação", style_cabecalho2, rows = 3, cols = 7:10, gridExpand = TRUE)
+      addStyle(wb, sheet = "Movimentação", style_corpo_bordas, rows = 4:(3+nrow(saídas)), cols = 7:(6+ncol(saídas)), gridExpand = TRUE)
+      
+      mergeCells(wb, sheet = "Movimentação", cols =  2:(1+ncol(entradas)), rows = 2)
+      mergeCells(wb, sheet = "Movimentação", cols =  7:(6+ncol(saídas)), rows = 2)
+      
+      setColWidths(wb, sheet = "Movimentação", cols = c(1, 6), widths = 2) 
+      setColWidths(wb, sheet = "Movimentação", cols = c(2), widths = 9)
+      setColWidths(wb, sheet = "Movimentação", cols = c(3), widths = 6)
+      setColWidths(wb, sheet = "Movimentação", cols = c(4), widths = 24)
+      setColWidths(wb, sheet = "Movimentação", cols = c(5), widths = 23)
+      setColWidths(wb, sheet = "Movimentação", cols = c(7), widths = 9)
+      setColWidths(wb, sheet = "Movimentação", cols = c(8), widths = 6)
+      setColWidths(wb, sheet = "Movimentação", cols = c(9), widths = 24)
+      setColWidths(wb, sheet = "Movimentação", cols = c(10), widths = 23)
       
       # Aba Divergências
       addWorksheet(wb, "Divergências")
