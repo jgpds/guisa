@@ -228,41 +228,42 @@ ui <- navbarPage(
                  style = "padding: 20px;",
                  h1("Manual do Usuário", align = "center"),
                  br(),
-                 h2("1. Introdução"),
-                 p("Esta aplicação foi desenvolvida para auxiliar na validação de bases de dados utilizando diferentes indexadores econômicos."),
                  
-                 h2("2. Como Utilizar"),
-                 h3("2.1 Seleção do Indexador"),
-                 p("Escolha o indexador econômico desejado (IPCA, IGPM, INPC, SELIC ou TR)."),
+                 h2("1. Seleção do Indexador"),
+                 p("Escolha o indexador econômico desejado (IPCA, IGPM, INPC, SELIC ou TR). O indexador auxiliará na identificação de variações nos benefícios e se elas ocorreram conforme o esperado."),
                  
-                 h3("2.2 Período de Análise"),
+                 h2("2. Período de Análise"),
                  p("Defina o período de análise selecionando:"),
                  tags$ul(
-                   tags$li("Data de Início: primeiro mês do período a ser analisado"),
-                   tags$li("Data de Término: último mês do período a ser analisado")
+                   tags$li(HTML("<strong>Data de Início</strong>: primeiro mês do período a ser analisado.")),
+                   tags$li(HTML("<strong>Data de Término</strong>: último mês do período a ser analisado. As datas são essenciais, pois a partir delas será calculado o valor acumulado do indexador."))
                  ),
                  
-                 h3("2.3 Carregamento das Bases"),
-                 p("Faça o upload de duas bases de dados em formato Excel (.xlsx ou .xls):"),
+                 h2("3. Importação das Bases"),
+                 p("Realize o upload de duas bases de dados em formato Excel (.xlsx ou .xls):"),
                  tags$ul(
-                   tags$li("Base 1: arquivo mais antigo"),
-                   tags$li("Base 2: arquivo mais recente")
+                   tags$li(HTML("<strong>Base 1</strong>: arquivo mais antigo.")),
+                   tags$li(HTML("<strong>Base 2</strong>: arquivo mais recente."))
                  ),
+                 p("Após carregar a ", HTML("<strong>Base 2</strong>"), ", o aplicativo gerará automaticamente uma ", 
+                   HTML("<strong>pirâmide etária</strong>"), " da população e um ", 
+                   HTML("<strong>gráfico boxplot</strong>"), ", resumindo o comportamento do benefício complementar. Além disso, serão exibidas acima dos gráficos as estatísticas mais relevantes da base."),
+                 p(HTML("<em>A importação das bases deve seguir o layout padrão, que pode ser baixado clicando no botão \"Baixar modelo de Planilhas\" ao final da página. A partir desse modelo, você poderá ajustar os dados conforme necessário, garantindo a manutenção da formatação inicial e do layout da planilha.</em>")),
                  
-                 h3("2.4 Execução da Validação"),
-                 p("Clique no botão 'Realizar Validação' para processar os dados."),
-                 
-                 h2("3. Resultados"),
-                 p("Os resultados são apresentados em três abas:"),
+                 h2("4. Resultados"),
+                 p("Após importar ambas as bases, selecionar o indexador e definir o período de análise, clique no botão ",
+                   HTML("<strong>\"Realizar Validação\"</strong>"), " para processar os dados. Em seguida, as seguintes abas estarão disponíveis:"),
                  tags$ul(
-                   tags$li(strong("Resumo: "), "visão geral dos parâmetros e resultados da validação"),
-                   tags$li(strong("Divergências: "), "lista detalhada de registros com diferenças"),
-                   tags$li(strong("Movimentação: "), "análise das alterações entre as bases")
+                   tags$li(HTML("<strong>Resumo</strong>: visão geral dos parâmetros e resultados da validação.")),
+                   tags$li(HTML("<strong>Divergências</strong>: lista detalhada de registros com diferenças.")),
+                   tags$li(HTML("<strong>Movimentação</strong>: análise das alterações entre as bases."))
                  ),
+                 p("Para um relatório detalhado, clique no botão ", 
+                   HTML("<strong>\"Baixar Relatório\"</strong>"), 
+                   " ao final da página. Uma planilha no formato .xlsx será gerada para sua análise."),
                  
-                 h2("4. Exportação"),
-                 p("Use o botão abaixo para baixar o modelo de planilhas:"),
-                 downloadButton("download_planilhas", "Baixar Modelos de Planilhas")
+                 br(),
+                 downloadButton("download_planilhas", "Baixar Modelo de Planilhas")
                )
              )
            )

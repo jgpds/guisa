@@ -95,14 +95,22 @@
 .well {
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   border-radius: 8px;
-  background-color: #f8f9fa;
+  background-color: #ffffff;
 }
-
+/* 
 .tab-content {
   padding: 20px;
   background-color: #ffffff;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}*/
+
+.tab-content {
+  padding: 20px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: none !important;
+  border-bottom: none !important;
 }
 
 .dataTables_wrapper {
