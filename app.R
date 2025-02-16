@@ -589,8 +589,8 @@ server <- function(input, output, session) {
           "Tipo de Benefício divergente", 
           "Benefício Complementar com variações significativas"
         ),
-        Frequencia = NA,      # Initialize with NA as in the original table
-        Percentual_Sobre_a_Base = NA  # Initialize with NA as in the original table
+        Frequencia = NA, # inicializando com NA, para depois preencher
+        Percentual_Sobre_a_Base = NA # inicializando com NA, para depois preencher
       )
       colnames(criticas) <- c("Críticas", "Frequência", "Percentual Sobre a Base")
       
@@ -607,32 +607,32 @@ server <- function(input, output, session) {
       criticas[3, 2] <- sum(ifelse(base_atual$`Benefício Complementar` < sal_minimo, 1, 0)) # Ocorrëncias
       criticas[3, 3] <- paste0(round(criticas[3, 2]/nrow(base_atual) * 100, 2), "%") # Porcentagem sobre a base
       
-      # Data de Início de Benefício menor que a Data de Nascimento
+      # 4. Data de Início de Benefício menor que a Data de Nascimento
       criticas[4, 2] <- sum(ifelse(base_atual$`Data de Início de Benefício` < base_atual$`Data de Nascimento`, 1, 0)) # Ocorrëncias
       criticas[4, 3] <- paste0(round(criticas[4, 2]/nrow(base_atual) * 100, 2), "%") # Porcentagem sobre a base
       
-      # Data de Nascimento divergente
+      # 5. Data de Nascimento divergente
       atual <- vlookup(base_atual_x_anterior$`Matrícula`, base_atual, "Matrícula", "Data de Nascimento")
       anterior <- vlookup(base_atual_x_anterior$`Matrícula`, base_anterior, "Matrícula", "Data de Nascimento")
       divergencias_atual_anterior$`Data de Nascimento divergente` <- ifelse(atual != anterior, 1, 0)
       criticas[5, 2] <- sum(divergencias_atual_anterior$`Data de Nascimento divergente`) # Ocorrëncias
       criticas[5, 3] <- paste0(round(criticas[5, 2]/nrow(base_atual) * 100, 2), "%") # Porcentagem sobre a base
       
-      # Sexo divergente
+      # 6. Sexo divergente
       atual <- vlookup(base_atual_x_anterior$`Matrícula`, base_atual, "Matrícula", "Sexo")
       anterior <- vlookup(base_atual_x_anterior$`Matrícula`, base_anterior, "Matrícula", "Sexo")
       divergencias_atual_anterior$`Sexo divergente` <- ifelse(atual != anterior, 1, 0)
       criticas[6, 2] <- sum(ifelse(atual != anterior, 1, 0)) # Ocorrëncias
       criticas[6, 3] <- paste0(round(criticas[6, 2]/nrow(base_atual) * 100, 2), "%") # Porcentagem sobre a base
       
-      # Tipo de Benefício divergente
+      # 7. Tipo de Benefício divergente
       atual <- vlookup(base_atual_x_anterior$`Matrícula`, base_atual, "Matrícula", "Tipo do Benefício")
       anterior <- vlookup(base_atual_x_anterior$`Matrícula`, base_anterior, "Matrícula", "Tipo do Benefício")
       divergencias_atual_anterior$`Tipo de Benefício divergente` <- ifelse(atual != anterior, 1, 0)
       criticas[7, 2] <- sum(ifelse(atual != anterior, 1, 0)) # Ocorrëncias
       criticas[7, 3] <- paste0(round(criticas[7, 2]/nrow(base_atual) * 100, 2), "%") # Porcentagem sobre a base
       
-      # Benefício complementar com divergências significativas
+      # 8. Benefício complementar com divergências significativas
       atual <- vlookup(base_atual_x_anterior$`Matrícula`, base_atual, "Matrícula", "Benefício Complementar")
       anterior <- vlookup(base_atual_x_anterior$`Matrícula`, base_anterior, "Matrícula", "Benefício Complementar")
       acumulado = rv$current_params$acumulado
@@ -710,7 +710,51 @@ server <- function(input, output, session) {
       saídas <- dplyr::anti_join(base_anterior, base_atual, by = "Matrícula") #  Quem está na base anterior e não está na base atual
       saídas <- saídas %>% select("Matrícula", "Sexo", "Data de Nascimento", "Benefício Complementar")
       
+      # Estatísticas
+      estatísticas <- data.frame(
+        Descrição = c(
+          "1. Participantes Aposentados", 
+          "1.2. Homens", 
+          "1.3. Mulheres", 
+          "2. Idade Média", 
+          "3. Número médio de dependentes", 
+          "4. Benefício Complementar Total", 
+          "5. Benefício Complementar Médio"
+        ),
+        Anterior = NA,
+        Atual = NA
+      )
+      colnames(estatísticas) <- c("Descrição", "Base Anterior", "Base Atual")
       
+      
+      # 1. Participantes Aposentados
+      estatísticas[1, 2] <- nrow(base_anterior)
+      estatísticas[1, 3] <- nrow(base_atual)
+      # 1.2. Homens
+      estatísticas[2, 2] <- sum(ifelse(base_anterior$`Sexo` == "M", 1, 0))
+      estatísticas[2, 3] <- sum(ifelse(base_atual$`Sexo` == "M", 1, 0))
+      # 1.3. Mulheres
+      estatísticas[3, 2] <- sum(ifelse(base_anterior$`Sexo` == "F", 1, 0))
+      estatísticas[3, 3] <- sum(ifelse(base_atual$`Sexo` == "F", 1, 0))
+      # 2. Idade Média
+      data_atual <- as.Date(input$data_fim, origin = "1899-12-30") # mesma base de data
+      datas_nascimento_anterior <- as.Date(base_anterior$`Data de Nascimento`, format = "%d/%m/%Y") # para o sistema de data do Excel (base 1900)
+      datas_nascimento_atual <- as.Date(base_atual$`Data de Nascimento`, format = "%d/%m/%Y") # para o sistema de data do Excel (base 1900)
+      estatísticas[4, 2] <- mean(as.numeric(difftime(data_atual, datas_nascimento_anterior, units = "weeks")) %/% 52)
+      print(data_atual)
+      print(datas_nascimento_anterior[1])
+      str(base_anterior$`Data de Nascimento`)
+      str(base_atual$`Data de Nascimento`)
+      estatísticas[4, 3] <- mean(as.numeric(difftime(data_atual, datas_nascimento_atual, units = "weeks")) %/% 52)
+      # 3. Número médio de dependentes
+      estatísticas[5, 2] <- sum(rowSums(!is.na(base_anterior[, c("Sexo Dep. 1", "Sexo Dep. 2", "Sexo Dep. 3")])))
+      estatísticas[5, 3] <- sum(rowSums(!is.na(base_atual[, c("Sexo Dep. 1", "Sexo Dep. 2", "Sexo Dep. 3")])))
+      # 4. Benefício Complementar Total
+      estatísticas[6, 2] <- sum(base_anterior$`Benefício Complementar`)
+      estatísticas[6, 3] <- sum(base_atual$`Benefício Complementar`)
+      # 5. Benefício Complementar Médio
+      estatísticas[7, 2] <- mean(base_anterior$`Benefício Complementar`)
+      estatísticas[7, 3] <- mean(base_atual$`Benefício Complementar`)
       
       
       # Criando pasta excel
@@ -802,6 +846,8 @@ server <- function(input, output, session) {
       writeData(wb, "Movimentação", entradas, startCol = 2, startRow = 3)
       writeData(wb, "Movimentação", "Saídas", startCol = 7, startRow = 2)
       writeData(wb, "Movimentação", saídas, startCol = 7, startRow = 3)
+      writeData(wb, "Movimentação", "Estatísticas", startCol = 12, startRow = 2)
+      writeData(wb, "Movimentação", estatísticas, startCol = 12, startRow = 3)
       
       addStyle(wb, sheet = "Movimentação", style_cabecalho4, rows = 2, cols = 2:5, gridExpand = TRUE)
       addStyle(wb, sheet = "Movimentação", style_cabecalho2, rows = 3, cols = 2:5, gridExpand = TRUE)
@@ -811,10 +857,15 @@ server <- function(input, output, session) {
       addStyle(wb, sheet = "Movimentação", style_cabecalho2, rows = 3, cols = 7:10, gridExpand = TRUE)
       addStyle(wb, sheet = "Movimentação", style_corpo_bordas, rows = 4:(3+nrow(saídas)), cols = 7:(6+ncol(saídas)), gridExpand = TRUE)
       
+      addStyle(wb, sheet = "Movimentação", style_cabecalho4, rows = 2, cols = 12:14, gridExpand = TRUE)
+      addStyle(wb, sheet = "Movimentação", style_cabecalho2, rows = 3, cols = 12:14, gridExpand = TRUE)
+      addStyle(wb, sheet = "Movimentação", style_corpo_bordas, rows = 4:(3+nrow(estatísticas)), cols = 12:(11+ncol(estatísticas)), gridExpand = TRUE)
+      
       mergeCells(wb, sheet = "Movimentação", cols =  2:(1+ncol(entradas)), rows = 2)
       mergeCells(wb, sheet = "Movimentação", cols =  7:(6+ncol(saídas)), rows = 2)
+      mergeCells(wb, sheet = "Movimentação", cols =  12:(11+ncol(estatísticas)), rows = 2)
       
-      setColWidths(wb, sheet = "Movimentação", cols = c(1, 6), widths = 2) 
+      setColWidths(wb, sheet = "Movimentação", cols = c(1, 6, 11), widths = 2) 
       setColWidths(wb, sheet = "Movimentação", cols = c(2), widths = 9)
       setColWidths(wb, sheet = "Movimentação", cols = c(3), widths = 6)
       setColWidths(wb, sheet = "Movimentação", cols = c(4), widths = 24)
@@ -823,6 +874,7 @@ server <- function(input, output, session) {
       setColWidths(wb, sheet = "Movimentação", cols = c(8), widths = 6)
       setColWidths(wb, sheet = "Movimentação", cols = c(9), widths = 24)
       setColWidths(wb, sheet = "Movimentação", cols = c(10), widths = 23)
+      setColWidths(wb, sheet = "Movimentação", cols = c(12), widths = 28)
       
       # Aba Divergências
       addWorksheet(wb, "Divergências")
